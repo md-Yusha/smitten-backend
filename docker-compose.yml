@@ -1,0 +1,10 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: smitten-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - /Smitten/dbdata/mongo:/data/db

@@ -1,0 +1,47 @@
+{
+  "name": "smitten-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && node -e \"require('fs').cpSync('src/admin-ui','dist/admin-ui',{recursive:true})\"",
+    "start": "node dist/index.js",
+    "db:generate": "prisma generate",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma db push",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:clear": "tsx src/clear-db.ts",
+    "db:encrypt-private-data": "tsx src/encrypt-existing-private-data.ts",
+    "db:test-push": "tsx src/send-test-push.ts",
+    "phonepe:tunnel": "npx --yes localtunnel --port 4000",
+    "phonepe:tunnel:ngrok": "node ../node_modules/@expo/ngrok-bin/bin/ngrok.js http 4000"
+  },
+  "dependencies": {
+    "@phonepe-pg/pg-sdk-node": "^2.0.6",
+    "@prisma/client": "^6.19.0",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "nodemailer": "^9.0.1",
+    "socket.io": "^4.8.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^22.18.0",
+    "@types/nodemailer": "^8.0.1",
+    "prisma": "^6.19.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

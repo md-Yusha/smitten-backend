@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  BOY
+  GIRL
+  OTHER
+}
+
+enum Plan {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum CoupleStatus {
+  PENDING_PARTNER
+  ACTIVE
+}
+
+enum MessageKind {
+  TEXT
+  STICKER
+  GIF
+  VIDEO
+  SYSTEM
+}
+
+model User {
+  id                       String               @id @default(auto()) @map("_id") @db.ObjectId
+  email                    String               @unique
+  passwordHash             String
+  name                     String
+  lastName                 String?
+  phoneNumber              String?
+  city                     String?
+  dateOfBirth              DateTime?
+  partnerKnownSince        DateTime?
+  partnerPetName           String?
+  nicknameSelf             String?
+  gender                   Gender
+  genderIdentity           String?
+  mood                     String?
+  coupleId                 String?              @db.ObjectId
+  couple                   Couple?              @relation(fields: [coupleId], references: [id])
+  isCoupleOwner            Boolean              @default(false)
+  subscription             Subscription?
+  payments                 Payment[]
+  refreshTokens            RefreshToken[]
+  passwordResetTokens      PasswordResetToken[]
+  sentMessages             Message[]            @relation("SentMessages")
+  vaultItems               VaultItem[]
+  memories                 Memory[]
+  notes                    Note[]
+  specialMoments           SpecialMoment[]
+  lovePingsSent            LovePing[]
+  chatDisappearingAfterMs  Float?
+  vaultDisappearingAfterMs Float?
+  chatThemeId              String               @default("cream")
+  avatarUrl                String?
+  lastSeenAt               DateTime?
+  expoPushToken            String?
+  expoPushTokens           String[]             @default([])
+  pushNotificationsEnabled Boolean              @default(true)
+  notificationChatEnabled  Boolean?             @default(true)
+  notificationBuzzEnabled  Boolean?             @default(true)
+  notificationMemoryEnabled Boolean?            @default(true)
+  notificationDiaryEnabled Boolean?             @default(true)
+  notificationGamesEnabled Boolean?             @default(true)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+}
+
+model Couple {
+  id                   String          @id @default(auto()) @map("_id") @db.ObjectId
+  inviteCode           String          @unique
+  status               CoupleStatus    @default(PENDING_PARTNER)
+  reservedPartnerEmail String?
+  users                User[]
+  messages             Message[]
+  vaultItems           VaultItem[]
+  memories             Memory[]
+  notes                Note[]
+  specialMoments       SpecialMoment[]
+  lovePings            LovePing[]
+  loveChallenges       LoveChallenge[]
+  ticTacToes           TicTacToe[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+model LovePing {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId  String    @db.ObjectId
+  couple    Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  senderId  String    @db.ObjectId
+  sender    User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  kind      String    @default("love_heart")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([coupleId, readAt, createdAt])
+}
+
+model VaultItem {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId   String    @db.ObjectId
+  couple     Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  uploaderId String    @db.ObjectId
+  uploader   User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  mediaUrl   String
+  mediaType  String    @default("image")
+  keyVersion String    @default("v1")
+  visibility String    @default("PRIVATE")
+  sourceItemId String?  @db.ObjectId
+  sharedAt   DateTime?
+  expiresAt  DateTime?
+  disappearingAfterMs Float?
+  createdAt  DateTime  @default(now())
+
+  @@index([coupleId, createdAt])
+  @@index([coupleId, visibility, expiresAt])
+  @@index([coupleId, sourceItemId, visibility])
+}
+
+model Memory {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId        String   @db.ObjectId
+  couple          Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  creatorId       String   @db.ObjectId
+  creator         User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title           String
+  description     String   @default("")
+  imageUrl        String?
+  mediaType       String   @default("image")
+  keyVersion      String   @default("v1")
+  memoryAt        DateTime
+  isSpecialMoment Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([coupleId, memoryAt])
+}
+
+model Note {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId    String   @db.ObjectId
+  couple      Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  creatorId   String   @db.ObjectId
+  creator     User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @default("")
+  visibility  String?  @default("SHARED")
+  noteAt      DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([coupleId, noteAt])
+}
+
+model SpecialMoment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId  String   @db.ObjectId
+  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  creatorId String   @db.ObjectId
+  creator   User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title     String
+  momentAt  DateTime
+  createdAt DateTime @default(now())
+
+  @@index([coupleId, momentAt])
+}
+
+model Message {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId   String      @db.ObjectId
+  couple     Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  senderId   String      @db.ObjectId
+  sender     User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  kind       MessageKind @default(TEXT)
+  body       String
+  replyToId       String?     @db.ObjectId
+  reaction        String?
+  reactionUserId  String?     @db.ObjectId
+  reactionUserName String?
+  keyVersion String      @default("v1")
+  isEdited   Boolean     @default(false)
+  isDeleted  Boolean     @default(false)
+  readAt     DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([coupleId, createdAt])
+}
+
+model Subscription {
+  id                     String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId                 String             @unique @db.ObjectId
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                   Plan
+  status                 SubscriptionStatus @default(PENDING)
+  expiresAt              DateTime?
+  lastExpiryReminderDate String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+}
+
+model Payment {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String        @db.ObjectId
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 Plan
+  amountPaise          Int
+  merchantOrderId      String        @unique
+  phonepeOrderId       String?
+  phonepeTransactionId String?
+  status               PaymentStatus @default(PENDING)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([userId, status])
+}
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  purpose   String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model EmailVerificationToken {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  email            String
+  codeHash         String
+  verificationHash String?
+  expiresAt        DateTime
+  verifiedAt       DateTime?
+  usedAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([email, expiresAt])
+}
+
+model LoveChallenge {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId    String   @db.ObjectId
+  couple      Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  creatorId   String   @db.ObjectId
+  question    String
+  options     String
+  correctIdx  Int
+  answeredIdx Int?
+  createdAt   DateTime @default(now())
+
+  @@index([coupleId, createdAt])
+}
+
+model TicTacToe {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  coupleId      String   @db.ObjectId
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  board         String   @default(",,,,,,,,")
+  status        String   @default("ACTIVE")
+  invitedById   String?  @db.ObjectId
+  declinedById  String?  @db.ObjectId
+  turnUserId    String   @db.ObjectId
+  playerXId     String   @db.ObjectId
+  playerOId     String   @db.ObjectId
+  winnerId      String?  @db.ObjectId
+  isDraw        Boolean  @default(false)
+  rematchNumber Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([coupleId, status, updatedAt])
+}

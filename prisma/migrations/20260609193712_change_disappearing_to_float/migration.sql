@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "chatDisappearingAfterMs" SET DATA TYPE DOUBLE PRECISION;
